@@ -1,70 +1,85 @@
-import { Image, StyleSheet, Platform } from 'react-native';
+import {StyleSheet, View, Text, Animated} from 'react-native';
+import SearchComponent from "@/components/SearchComponent";
+import {useEffect, useState} from "react";
+import ScrollView = Animated.ScrollView;
+import {getCurrentWeatherAsync} from "@/api/weatherApi";
+import {GetCurrentWeatherResponse} from "@/api/getCurrentWeatherResponse";
+import {LoadingComponent} from "@/components/LoadingComponent";
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({ ios: 'cmd + d', android: 'cmd + m' })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{' '}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
-  );
+    const [isLoading, setIsLoading] = useState(false);
+    const [searchText, setSearchText] = useState("");
+    const [weather, setWeather] = useState<GetCurrentWeatherResponse | null>(null);
+    useEffect(() => {
+        setIsLoading(true);
+        getCurrentWeatherAsync("auto:ip").then((w) => setWeather(w));
+        setIsLoading(false);
+    }, [])
+
+    const handleSearchWeather = async (query: string) => {
+        try {
+            setIsLoading(true);
+            const weatherData = await getCurrentWeatherAsync(query);
+            if (weatherData) {
+                setWeather(weatherData);
+            } else {
+                alert('No data!');
+            }
+            setIsLoading(false);
+        } catch (error) {
+            alert(error);
+        }
+    };
+
+
+    return (
+        <ScrollView className={" p-2"}>
+            <SearchComponent placeholder={"Введите город"} onSearch={handleSearchWeather}/>
+
+            {isLoading ?
+                (<LoadingComponent/>)
+                :
+                (<View className={""}>
+                    <Text className={"text-center text-2xl uppercase text-red-500 font-black"}>
+                        {weather?.location.name}
+                    </Text>
+                    <Text className={"text-center text-2xl uppercase text-white font-black"}>
+                        {`${weather?.location.country}, ${weather?.location.region}`}
+                    </Text>
+                    <Text className={"text-center text-xl text-gray-400"}>
+                        {`${weather?.location.localtime}`}
+                    </Text>
+                    <Text className={"text-center text-8xl text-red-500 font-black"}>
+                        {weather?.current.temp_c} {'°C'}
+                    </Text>
+                    <Text className={"text-center text-2xl text-gray-400"}>
+                        {`(Feels like ${weather?.current.feelslike_c})`}
+                    </Text>
+                    <Text className={"text-center text-2xl uppercase text-white font-black"}>
+                        {weather?.current.condition.text}
+                    </Text>
+
+                </View>)}
+        </ScrollView>
+    );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
+    titleContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    stepContainer: {
+        gap: 8,
+        marginBottom: 8,
+    },
+    reactLogo: {
+        height: 178,
+        width: 290,
+        bottom: 0,
+        left: 0,
+        position: 'absolute',
+    },
 });
